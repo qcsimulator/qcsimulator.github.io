@@ -1,40 +1,41 @@
 /*
-    TODO: More of the DOM specific stuff needs to be moved to the editor. Such
-    as the toolbar construction.
+TODO: More of the DOM specific stuff needs to be moved to the editor. Such as
+the toolbar construction.
 */
 
 
-/**
- * Applies circuit to matrix of vector U and passes result to callback
- */
-function applyCircuit(circuit, x, callback) {
-    var progressWrapper = $('#progress').css('display', 'inline-block');
-    var progress = $('#progress > div').width(0);
-    circuit.evaluate(x, function(percent) {
-        progress.width(progressWrapper.width() * percent);
-    }, function(x) {
-        progressWrapper.hide();
+/*
+Applies circuit to matrix of vector U and passes result to callback
+*/
+const applyCircuit = (circuit, x, callback) => {
+    const wrapper = $('#progress').css('display', 'inline-block');
+    const progress = $('#progress > div').width(0);
+    circuit.evaluate(x, percent => {
+        progress.width(wrapper.width() * percent);
+    }, x => {
+        wrapper.hide();
         callback(x);
     });
 }
 
-function displayAmplitudes(nqubits, amplitudes) {
-    var prob, row, table = $('#amplitudes').empty();
-    var hideImpossible = ($('#hide-impossible').text() != '(hide impossible)');
+const displayAmplitudes = (nqubits, amplitudes) => {
+    const table = $('#amplitudes').empty();
+    const hide = ($('#hide-impossible').text() != '(hide impossible)');
     $('#amplitudes-container').css('display', 'block');
-    for (var i = 0; i < amplitudes.x.length; i++) {
-        var amplitude = '', state = '';
-        for (var j = 0; j < nqubits; j++) {
+    for (let i = 0; i < amplitudes.x.length; i++) {
+        let amplitude = '';
+        let state = '';
+        for (let j = 0; j < nqubits; j++) {
             state = ((i & (1 << j)) >> j) + state;
         }
         amplitude += amplitudes.x[i].toFixed(8);
         amplitude += amplitudes.y[i] < 0 ? '-' : '+';
         amplitude += Math.abs(amplitudes.y[i]).toFixed(8) + 'i';
-        row = $('<tr></tr>');
-        prob = Math.pow(amplitudes.x[i], 2);
+        const row = $('<tr></tr>');
+        let prob = Math.pow(amplitudes.x[i], 2);
         prob += Math.pow(amplitudes.y[i], 2);
         if (prob < numeric.epsilon) {
-            if (hideImpossible) {
+            if (hide) {
                 continue;
             } else {
                 row.css('color', '#ccc');
@@ -47,53 +48,56 @@ function displayAmplitudes(nqubits, amplitudes) {
     }
 }
 
-$(function() {
-    $('#toolbar')[0].onselectstart = function(){return false};
-    var canvas = document.getElementById('canvas');
-    var app = new Application(canvas, 2);
-    var editor = app.editor;
-    $('#hide-impossible').click(function() {
-        var hide = '(hide impossible)';
-        var show = '(show all)';
-        $(this).text($(this).text() == hide ? show : hide);
+$(() => {
+    $('#toolbar')[0].onselectstart = evt => false;
+    const canvas = document.getElementById('canvas');
+    const app = new Application(canvas, 2);
+    const editor = app.editor;
+
+    const hideBtn = $('#hide-impossible');
+    hideBtn.click(evt => {
+        const hide = '(hide impossible)';
+        const show = '(show all)';
+        hideBtn.text(hideBtn.text() == hide ? show : hide);
         $('#evaluate').click();
     });
-    $('#reset').click(function() {
-        var ok = confirm('Clear entire circuit?');
+
+    $('#reset').click(evt => {
+        const ok = confirm('Clear entire circuit?');
         if (ok) {
             app.circuit.gates = [];
             editor.render();
         }
-        return false;
     });
-    $('#evaluate').click(function() {
-        app.circuit.gates.sort(function(a, b) {return a.time - b.time;});
-        var size = Math.pow(2, app.circuit.nqubits);
-        var amplitudes = new numeric.T(numeric.rep([size], 0), numeric.rep([size], 0));
-        var state = editor.input.join('');
+
+    $('#evaluate').click(evt => {
+        app.circuit.gates.sort((a, b) => a.time - b.time);
+        const size = Math.pow(2, app.circuit.nqubits);
+        const amplitudes = new numeric.T(numeric.rep([size], 0), numeric.rep([size], 0));
+        const state = editor.input.join('');
         amplitudes.x[parseInt(state, 2)] = 1;
-        applyCircuit(app.circuit, amplitudes, function(amplitudes) {
+        applyCircuit(app.circuit, amplitudes, amplitudes => {
             displayAmplitudes(app.circuit.nqubits, amplitudes.div(amplitudes.norm2()))
         });
-        return false;
     });
-    $('body').keydown(function(event) {
+
+    $('body').keydown(evt => {
         // Catch hotkeys
-        if (event.which == 'S'.charCodeAt(0) && event.ctrlKey) {
+        if (evt.which == 'S'.charCodeAt(0) && evt.ctrlKey) {
+            evt.preventDefault();
             $('#compile').click();
-            event.preventDefault();
-        } else if (event.which == 13) {
+        } else if (evt.which == 13) {
+            evt.preventDefault();
             $('#evaluate').click();
-            event.preventDefault();
         }
     });
 
-    $('#compile').click(function() {
-        app.circuit.gates.sort(function(a, b) {return a.time - b.time;});
-        var size = Math.pow(2, app.circuit.nqubits);
-        var U = new numeric.T(numeric.identity(size), numeric.rep([size, size], 0));
-        applyCircuit(app.circuit, U, function(U) {
-            var name = prompt('Name of gate:', 'F');
+    $('#compile').click(evt => {
+        app.circuit.gates.sort((a, b) => a.time - b.time);
+        const size = Math.pow(2, app.circuit.nqubits);
+        const U = new numeric.T(numeric.identity(size), numeric.rep([size, size], 0));
+        applyCircuit(app.circuit, U, U => {
+            const name = prompt('Name of gate:', 'F');
             if (name) {
                 if (app.workspace.gates[name]) {
                     app.workspace.gates[name].matrix = U;
@@ -111,46 +115,43 @@ $(function() {
                 }
             }
         });
-        return false;
     });
-    $('#exportImage').click(function() {
-        var oldlength = editor.length;
-        var times = app.circuit.gates.map(function(gate) {return gate.time});
+
+    $('#exportImage').click(evt => {
+        const oldlength = editor.length;
+        const times = app.circuit.gates.map(gate => gate.time);
         editor.resize(app.circuit.nqubits, Math.max.apply(Math, times) + 1);
         window.open(editor.draw.canvas.toDataURL("image/png"));
         editor.resize(app.circuit.nqubits, oldlength);
-        return false;
     });
 
-    $('#exportMatrix').click(function() {
-        app.circuit.gates.sort(function(a, b) {return a.time - b.time;});
-        var size = Math.pow(2, app.circuit.nqubits);
-        var U = new numeric.T(numeric.identity(size), numeric.rep([size, size], 0));
-        applyCircuit(app.circuit, U, function(U) {
-            var child = window.open('', 'matrix.csv', ',resizable=yes,scrollbars=yes,menubar=yes,toolbar=yes,titlebar=yes,hotkeys=yes,status=1,dependent=no');
-            for (var i = 0; i < U.x.length; i++) {
-                var row = [];
-                for (var j = 0; j < U.x[i].length; j++) {
+    $('#exportMatrix').click(evt => {
+        app.circuit.gates.sort((a, b) => a.time - b.time);
+        const size = Math.pow(2, app.circuit.nqubits);
+        const U = new numeric.T(numeric.identity(size), numeric.rep([size, size], 0));
+        applyCircuit(app.circuit, U, U => {
+            const child = window.open('', 'matrix.csv', ',resizable=yes,scrollbars=yes,menubar=yes,toolbar=yes,titlebar=yes,hotkeys=yes,status=1,dependent=no');
+            for (let i = 0; i < U.x.length; i++) {
+                const row = [];
+                for (let j = 0; j < U.x[i].length; j++) {
                     row.push(U.x[i][j].toFixed(16) + '+' + U.y[i][j].toFixed(16) + 'i');
                 }
                 child.document.write(row.join(',') + '<br>');
             }
         });
-        return false;
     });
 
-    $('#importJSON').click(function() {
-        var json = prompt('Paste JSON:');
+    $('#importJSON').click(evt => {
+        const json = prompt('Paste JSON:');
         app.loadWorkspace(JSON.parse(json));
-        return false;
     });
 
-    $('#exportJSON').click(function() {
-        app.circuit.gates.sort(function(a, b) {return a.time - b.time;});
-        var gates = [];
+    $('#exportJSON').click(evt => {
+        app.circuit.gates.sort((a, b) => a.time - b.time);
+        const gates = [];
         $('#toolbar .user div.gate').each(function() {
-            var name = $(this).data('type');
-            var type = app.workspace.gates[name];
+            const name = $(this).data('type');
+            const type = app.workspace.gates[name];
             gates.push({
                 name: name,
                 qubits: type.circuit.nqubits,
@@ -158,29 +159,28 @@ $(function() {
                 title: ''
             });
         });
-        var json = JSON.stringify({
+        const json = JSON.stringify({
             gates: gates,
             circuit: app.circuit.toJSON(),
             qubits: app.circuit.nqubits,
             input: editor.input
         });
-        var a = $('<a download="circuit.js">circuit.js</a>');
+        const a = $('<a download="circuit.js">circuit.js</a>');
         a.attr('href', 'data:text/javascript,' + encodeURI(json));
         $(document.body).append(a);
         a[0].click();
         a.remove();
-        return false;
     });
 
     $('#nqubits > ul > li > a').click(function() {
-        var nqubits = parseInt($(this).text());
+        const nqubits = parseInt($(this).text());
         $('#nqubits > span').text('Qubits: ' + nqubits);
-        var newGates = app.circuit.gates.filter(function(gate) {
+        const newGates = app.circuit.gates.filter(gate => {
             return gate.range[1] < nqubits;
         });
         if (newGates.length < app.circuit.gates.length) {
-            var count = app.circuit.gates.length - newGates.length;
-            var ok = confirm('Resizing will remove ' + count + ' gates. Resize anyway?')
+            const count = app.circuit.gates.length - newGates.length;
+            const ok = confirm('Resizing will remove ' + count + ' gates. Resize anyway?')
             if (ok) {
                 app.circuit.gates = newGates;
                 editor.resize(nqubits, editor.length);
@@ -188,23 +188,21 @@ $(function() {
         } else {
             editor.resize(nqubits, editor.length);
         }
-        return false;
     });
     $('#nqubits .default').click();
 
-
-    function getUrlVars() {
-        var vars = [], hash;
-        var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-        for(var i = 0; i < hashes.length; i++) {
-            hash = hashes[i].split('=');
+    const getUrlVars = () => {
+        const vars = [];
+        const hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+        for(let i = 0; i < hashes.length; i++) {
+            const hash = hashes[i].split('=');
             vars.push(hash[0]);
-            vars[hash[0]] =decodeURI(hash[1]);
+            vars[hash[0]] = decodeURI(hash[1]);
         }
         return vars;
     }
 
-    var EXAMPLES = [
+    const EXAMPLES = [
         ["Toffoli", TOFFOLI],
         ["Bell State", BELL_STATE],
         ["2 Qubit QFT", QFT2],
@@ -212,14 +210,13 @@ $(function() {
         ["Grover's Algorithm", GROVERS_ALGORITHM],
         ["Quantum Teleportation", TELEPORTATION],
     ];
-    var examples = $('#examples');
-    $.each(EXAMPLES, function(i, example) {
-        var name = example[0];
-        var json = example[1];
-        var a = $('<a href="#"></a>').text(name);
-        a.click(function() {
-            var win = open('?example=' + example[0]);
-            return false;
+    const examples = $('#examples');
+    $.each(EXAMPLES, (i, example) => {
+        const name = example[0];
+        const json = example[1];
+        const a = $('<a href="#"></a>').text(name);
+        a.click(evt => {
+            open('?example=' + example[0]);
         });
         if (getUrlVars().example == name) {
             app.loadWorkspace(json);
@@ -227,16 +224,15 @@ $(function() {
         examples.append($('<li></li>').append(a));
     });
 
-    $('#about').click(function() {
+    $('#about').click(evt => {
         $('#modal').css('display', 'block');
-        return false;
     });
 
-    $('#modal').click(function() {
+    $('#modal').click(evt => {
         $('#modal').css('display', 'none');
     });
 
-    $('#modal > div').click(function(evt) {
+    $('#modal > div').click(evt => {
         evt.preventDefault();
         evt.stopPropagation();
     });
