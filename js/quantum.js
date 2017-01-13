@@ -1,14 +1,14 @@
-var quantum = (function(quantum) {
+window.quantum = (quantum => {
 
     /*
-        Return version of U controlled by first qubit.
+    Return version of U controlled by first qubit.
     */
-    quantum.controlled = function(U) {
-        var m = U.x.length;
-        var Mx = numeric.identity(m * 2);
-        var My = numeric.rep([m * 2, m * 2], 0);
-        for (var i = 0; i < m; i++) {
-            for (var j = 0; j < m; j++) {
+    quantum.controlled = U => {
+        const m = U.x.length;
+        const Mx = numeric.identity(m * 2);
+        const My = numeric.rep([m * 2, m * 2], 0);
+        for (let i = 0; i < m; i++) {
+            for (let j = 0; j < m; j++) {
                 Mx[i + m][j + m] = U.x[i][j];
                 My[i + m][j + m] = U.y[i][j];
             }
@@ -17,30 +17,31 @@ var quantum = (function(quantum) {
     };
 
     /*
-        Return transformation over entire nqubit register that applies U to
-        specified qubits (in order given).
-        Algorithm from Lee Spector's "Automatic Quantum Computer Programming"
+    Return transformation over entire nqubit register that applies U to
+    specified qubits (in order given).
+    Algorithm from Lee Spector's "Automatic Quantum Computer Programming"
     */
-    quantum.expandMatrix = function(nqubits, U, qubits) {
-        var i, j, k, X, Y, _qubits = [], n = Math.pow(2, nqubits);
+    quantum.expandMatrix = (nqubits, U, qubits) => {
+        const _qubits = [];
+        const n = Math.pow(2, nqubits);
         qubits = qubits.slice(0);
-        for (var i = 0; i < qubits.length; i++) {
+        for (let i = 0; i < qubits.length; i++) {
             qubits[i] = (nqubits - 1) - qubits[i];
         }
         qubits.reverse();
-        for (var i = 0; i < nqubits; i++) {
+        for (let i = 0; i < nqubits; i++) {
             if (qubits.indexOf(i) == -1) {
                 _qubits.push(i);
             }
         }
-        X = numeric.rep([n, n], 0);
-        Y = numeric.rep([n, n], 0);
-        i = n;
+        const X = numeric.rep([n, n], 0);
+        const Y = numeric.rep([n, n], 0);
+        let i = n;
         while (i--) {
-            j = n;
+            let j = n;
             while (j--) {
-                var bitsEqual = true;
-                k = _qubits.length;
+                let bitsEqual = true;
+                let k = _qubits.length;
                 while (k--) {
                     if ((i & (1 << _qubits[k])) != (j & (1 << _qubits[k]))) {
                         bitsEqual = false;
@@ -48,10 +49,11 @@ var quantum = (function(quantum) {
                     }
                 }
                 if (bitsEqual) {
-                    var istar = 0, jstar = 0;
-                    k = qubits.length;
+                    let istar = 0;
+                    let jstar = 0;
+                    let k = qubits.length;
                     while (k--) {
-                        var q = qubits[k];
+                        const q = qubits[k];
                         istar |= ((i & (1 << q)) >> q) << k;
                         jstar |= ((j & (1 << q)) >> q) << k;
                     }
@@ -88,9 +90,9 @@ var quantum = (function(quantum) {
         [[0, 0], [0, 1]]
     );
 
-    function makeR(theta) {
-        var x = Math.cos(theta);
-        var y = Math.sin(theta);
+    const makeR = theta => {
+        const x = Math.cos(theta);
+        const y = Math.sin(theta);
         return new numeric.T([[1, 0], [0, x]], [[0, 0], [0, y]]);
     }
 
@@ -109,16 +111,16 @@ var quantum = (function(quantum) {
     );
 
     /*
-        Return Quantum Fourier Transform matrix of an nqubit register operating
-        on specified qubits.
+    Return Quantum Fourier Transform matrix of an nqubit register operating
+    on specified qubits.
     */
-    quantum.qft = function(nqubits) {
-        var n = Math.pow(2, nqubits);
-        var wtheta = (2 * Math.PI) / n;
-        var x = numeric.rep([n, n], 0);
-        var y = numeric.rep([n, n], 0);
-        for (var i = 0; i < n; i++) {
-            for (var j = 0; j < n; j++) {
+    quantum.qft = (nqubits) => {
+        const n = Math.pow(2, nqubits);
+        const wtheta = (2 * Math.PI) / n;
+        const x = numeric.rep([n, n], 0);
+        const y = numeric.rep([n, n], 0);
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
                 x[i][j] = Math.cos(i * j * wtheta);
                 y[i][j] = Math.sin(i * j * wtheta);
             }
@@ -132,5 +134,4 @@ var quantum = (function(quantum) {
     );
 
     return quantum;
-})(quantum || {});
-
+})(window.quantum || {});
