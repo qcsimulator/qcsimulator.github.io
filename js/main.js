@@ -8,20 +8,24 @@ the toolbar construction.
 Applies circuit to matrix of vector U and passes result to callback
 */
 const applyCircuit = (circuit, x, callback) => {
-    const wrapper = $('#progress').css('display', 'inline-block');
-    const progress = $('#progress > div').width(0);
+    const wrapper = document.querySelector('#progress');
+    wrapper.style.display = 'inline-block';
+    const progress = document.querySelector('#progress > div');
+    progress.width = 0;
     circuit.evaluate(x, percent => {
-        progress.width(wrapper.width() * percent);
+        progress.style.width = wrapper.clientWidth * percent;
     }, x => {
-        wrapper.hide();
+        wrapper.style.display = 'none';
         callback(x);
     });
 }
 
 const displayAmplitudes = (nqubits, amplitudes) => {
-    const table = $('#amplitudes').empty();
-    const hide = ($('#hide-impossible').text() != '(hide impossible)');
-    $('#amplitudes-container').css('display', 'block');
+    const table = document.querySelector('#amplitudes');
+    table.innerHTML = '';
+    const hideBtn = document.querySelector('#hide-impossible');
+    const hide = hideBtn.innerHTML !== '(hide impossible)';
+    document.querySelector('#amplitudes-container').style.display = 'block';
     for (let i = 0; i < amplitudes.x.length; i++) {
         let amplitude = '';
         let state = '';
@@ -31,46 +35,52 @@ const displayAmplitudes = (nqubits, amplitudes) => {
         amplitude += amplitudes.x[i].toFixed(8);
         amplitude += amplitudes.y[i] < 0 ? '-' : '+';
         amplitude += Math.abs(amplitudes.y[i]).toFixed(8) + 'i';
-        const row = $('<tr></tr>');
+        const row = document.createElement('tr');
         let prob = Math.pow(amplitudes.x[i], 2);
         prob += Math.pow(amplitudes.y[i], 2);
         if (prob < numeric.epsilon) {
             if (hide) {
                 continue;
             } else {
-                row.css('color', '#ccc');
+                row.style.color = '#ccc';
             }
         }
-        row.append($('<td style="text-align: right"></td>').text(amplitude));
-        row.append($('<td></td>').text('|' + state + '>'));
-        row.append($('<td style="text-indent: 20px"></td>').text((prob * 100).toFixed(4) + '%'));
-        table.append(row);
+        const probability = (prob * 100).toFixed(4) + '%';
+        row.innerHTML = `
+            <td style="text-align: right">${amplitude}</td>
+            <td>|${state}></td>
+            <td style="text-indent: 20px">${probability}</td>
+        `;
+        table.appendChild(row);
     }
 }
 
-$(() => {
-    $('#toolbar')[0].onselectstart = evt => false;
+window.onload = () => {
+    document.querySelector('#toolbar').onselectstart = evt => false;
     const canvas = document.getElementById('canvas');
     const app = new Application(canvas, 2);
     const editor = app.editor;
 
-    const hideBtn = $('#hide-impossible');
-    hideBtn.click(evt => {
+    const hideBtn = document.querySelector('#hide-impossible');
+    hideBtn.onclick = evt => {
+        evt.preventDefault();
         const hide = '(hide impossible)';
         const show = '(show all)';
-        hideBtn.text(hideBtn.text() == hide ? show : hide);
-        $('#evaluate').click();
-    });
+        hideBtn.innerHTML = hideBtn.innerHTML == hide ? show : hide;
+        document.querySelector('#evaluate').click();
+    };
 
-    $('#reset').click(evt => {
+    document.querySelector('#reset').onclick = evt => {
+        evt.preventDefault();
         const ok = confirm('Clear entire circuit?');
         if (ok) {
             app.circuit.gates = [];
             editor.render();
         }
-    });
+    };
 
-    $('#evaluate').click(evt => {
+    document.querySelector('#evaluate').onclick = evt => {
+        evt.preventDefault();
         app.circuit.gates.sort((a, b) => a.time - b.time);
         const size = Math.pow(2, app.circuit.nqubits);
         const amplitudes = new numeric.T(numeric.rep([size], 0), numeric.rep([size], 0));
@@ -79,20 +89,21 @@ $(() => {
         applyCircuit(app.circuit, amplitudes, amplitudes => {
             displayAmplitudes(app.circuit.nqubits, amplitudes.div(amplitudes.norm2()))
         });
-    });
+    };
 
-    $('body').keydown(evt => {
+    document.body.onkeydown = evt => {
         // Catch hotkeys
         if (evt.which == 'S'.charCodeAt(0) && evt.ctrlKey) {
             evt.preventDefault();
-            $('#compile').click();
+            document.querySelector('#compile').click();
         } else if (evt.which == 13) {
             evt.preventDefault();
-            $('#evaluate').click();
+            document.querySelector('#evaluate').click();
         }
-    });
+    };
 
-    $('#compile').click(evt => {
+    document.querySelector('#compile').onclick = evt => {
+        evt.preventDefault();
         app.circuit.gates.sort((a, b) => a.time - b.time);
         const size = Math.pow(2, app.circuit.nqubits);
         const U = new numeric.T(numeric.identity(size), numeric.rep([size, size], 0));
@@ -115,17 +126,19 @@ $(() => {
                 }
             }
         });
-    });
+    };
 
-    $('#exportImage').click(evt => {
+    document.querySelector('#exportImage').onclick = evt => {
+        evt.preventDefault();
         const oldlength = editor.length;
         const times = app.circuit.gates.map(gate => gate.time);
         editor.resize(app.circuit.nqubits, Math.max.apply(Math, times) + 1);
         window.open(editor.draw.canvas.toDataURL("image/png"));
         editor.resize(app.circuit.nqubits, oldlength);
-    });
+    };
 
-    $('#exportMatrix').click(evt => {
+    document.querySelector('#exportMatrix').onclick = evt => {
+        evt.preventDefault();
         app.circuit.gates.sort((a, b) => a.time - b.time);
         const size = Math.pow(2, app.circuit.nqubits);
         const U = new numeric.T(numeric.identity(size), numeric.rep([size, size], 0));
@@ -139,18 +152,20 @@ $(() => {
                 child.document.write(row.join(',') + '<br>');
             }
         });
-    });
+    };
 
-    $('#importJSON').click(evt => {
+    document.querySelector('#importJSON').onclick = evt => {
+        evt.preventDefault();
         const json = prompt('Paste JSON:');
         app.loadWorkspace(JSON.parse(json));
-    });
+    };
 
-    $('#exportJSON').click(evt => {
+    document.querySelector('#exportJSON').onclick = evt => {
+        evt.preventDefault();
         app.circuit.gates.sort((a, b) => a.time - b.time);
         const gates = [];
-        $('#toolbar .user div.gate').each(function() {
-            const name = $(this).data('type');
+        document.querySelectorAll('#toolbar .user div.gate').forEach(gate => {
+            const name = gate.dataset.type;
             const type = app.workspace.gates[name];
             gates.push({
                 name: name,
@@ -165,35 +180,53 @@ $(() => {
             qubits: app.circuit.nqubits,
             input: editor.input
         });
-        const a = $('<a download="circuit.js">circuit.js</a>');
-        a.attr('href', 'data:text/javascript,' + encodeURI(json));
-        $(document.body).append(a);
-        a[0].click();
-        a.remove();
-    });
+        const a = document.createElement('a');
+        a.download = 'circuit.json';
+        a.innerHTML = 'circuit.json';
+        a.href = 'data:text/javascript,' + encodeURI(json);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
 
-    $('#nqubits > ul > li > a').click(function() {
-        const nqubits = parseInt($(this).text());
-        $('#nqubits > span').text('Qubits: ' + nqubits);
+    const resize = size => {
+        document.querySelector('#nqubits > span').innerHTML = 'Qubits: ' + size;
         const newGates = app.circuit.gates.filter(gate => {
-            return gate.range[1] < nqubits;
+            return gate.range[1] < size;
         });
         if (newGates.length < app.circuit.gates.length) {
             const count = app.circuit.gates.length - newGates.length;
             const ok = confirm('Resizing will remove ' + count + ' gates. Resize anyway?')
             if (ok) {
                 app.circuit.gates = newGates;
-                editor.resize(nqubits, editor.length);
+                editor.resize(size, editor.length);
             }
         } else {
-            editor.resize(nqubits, editor.length);
+            editor.resize(size, editor.length);
         }
-    });
-    $('#nqubits .default').click();
+    };
+
+    const nqubitsUl = document.querySelector('#nqubits > ul');
+    for (let i = 1; i < 11; i++) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#';
+        a.innerHTML = i;
+        a.onclick = evt => {
+            evt.preventDefault();
+            resize(i);
+        };
+        li.appendChild(a);
+        nqubitsUl.appendChild(li);
+        if (i == 2) {
+            a.click();
+        }
+    }
 
     const getUrlVars = () => {
         const vars = [];
-        const hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+        const location = window.location.href;
+        const hashes = location.slice(location.indexOf('?') + 1).split('&');
         for(let i = 0; i < hashes.length; i++) {
             const hash = hashes[i].split('=');
             vars.push(hash[0]);
@@ -210,32 +243,36 @@ $(() => {
         ["Grover's Algorithm", GROVERS_ALGORITHM],
         ["Quantum Teleportation", TELEPORTATION],
     ];
-    const examples = $('#examples');
-    $.each(EXAMPLES, (i, example) => {
+    const examples = document.querySelector('#examples');
+    EXAMPLES.forEach((example, i) => {
         const name = example[0];
         const json = example[1];
-        const a = $('<a href="#"></a>').text(name);
-        a.click(evt => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.appendChild(document.createTextNode(name));
+        a.onclick = evt => {
+            evt.preventDefault();
             open('?example=' + example[0]);
-        });
+        };
         if (getUrlVars().example == name) {
             app.loadWorkspace(json);
         }
-        examples.append($('<li></li>').append(a));
+        const li = document.createElement('li');
+        li.appendChild(a);
+        examples.appendChild(li);
     });
 
-    $('#about').click(evt => {
-        $('#modal').css('display', 'block');
-    });
+    document.querySelector('#about').onclick = evt => {
+        document.querySelector('#modal').style.display = 'block';
+    };
 
-    $('#modal').click(evt => {
-        $('#modal').css('display', 'none');
-    });
+    document.querySelector('#modal').onclick = evt => {
+        document.querySelector('#modal').style.display = 'none';
+    };
 
-    $('#modal > div').click(evt => {
+    document.querySelector('#modal > div').onclick = evt => {
         evt.preventDefault();
         evt.stopPropagation();
-    });
+    };
 
-});
-
+};
