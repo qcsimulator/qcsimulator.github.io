@@ -1,0 +1,177 @@
+<html>
+<head>
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="stylesheet" href="css/base.css">
+    <title>Quantum Circuit Simulator</title>
+    <script src="js/libs/jquery.js"></script>
+    <script src="js/libs/numeric.js"></script>
+    <script src="js/libs/processing.js"></script>
+    <script src="js/quantum.js"></script>
+    <script src="js/workspace.js"></script>
+    <script src="js/gate.js"></script>
+    <script src="js/circuit.js"></script>
+    <script src="js/draw.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/examples.js"></script>
+    <script src="js/application.js"></script>
+    <script src="js/main.js"></script>
+</head>
+<body>
+    <div>
+        <ul id="menubar" class="drop">
+            <li>
+                Workspace
+                <ul>
+                    <li><a href="#" onclick="window.open(window.location)">New</a></li>
+                    <li>
+                        Examples
+                        <ul id="examples">
+                        </ul>
+                    </li>
+                    <li><a id="importJSON" href="#">Import JSON</a></li>
+                    <li><a id="exportJSON" href="#">Export JSON</a></li>
+                </ul>
+            </li>
+            <li>
+                Circuit
+                <ul>
+                    <li>
+                        <a id="evaluate" href="#" title="Evaluate circuit">
+                            Evaluate
+                            <div style="float:right; font-size: 11px">
+                                Enter
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a id="compile" href="#" title="Compile circuit to gate">
+                            Compile
+                            <div style="float:right; font-size: 11px">
+                                Ctrl+S
+                            </div>
+                        </a>
+                    </li>
+                    <li><a id="exportImage" href="#">Export Image</a></li>
+                    <li><a id="exportMatrix" href="#">Export Matrix</a></li>
+                    <li id="nqubits">
+                        <span>Qubits</span>
+                        <ul>
+                            <li><a href="#">1</a></li>
+                            <li><a href="#" class="default">2</a></li>
+                            <li><a href="#">3</a></li>
+                            <li><a href="#">4</a></li>
+                            <li><a href="#">5</a></li>
+                            <li><a href="#">6</a></li>
+                            <li><a href="#">7</a></li>
+                            <li><a href="#">8</a></li>
+                            <li><a href="#">9</a></li>
+                        </ul>
+                    </li>
+                    <li><a id="reset" href="#">Reset</a></li>
+                </ul>
+            </li>
+            <li style="float:right"><a id="about" href="#">About</a></li>
+        </ul>
+    </div>
+    <div style="clear:both">
+        <div id="content" style="float:left">
+            <div id="toolbar">
+                <div class="std"></div>
+                <div class="user"></div>
+            </div>
+            <div>
+                <canvas id="canvas"></canvas>
+            </div>
+            <div id="progress"><div></div></div>
+        </div>
+        <div id="amplitudes-container">
+            <div id="hide-impossible">(show all)</div>
+            <div id="amplitudes-scrollbox">
+                <table id="amplitudes"></table>
+            </div>
+        </div>
+    </div>
+    <div id="modal">
+        <div style="text-align: left">
+            <h1 style="text-align: center">Quantum Circuit Simulator</h1>
+            <p>
+                Written by <a href="http://www.davyw.com">Davy Wybiral</a>.
+                <br>
+                Contributions by <a href="http://molehair.noip.me">Jiman Hwang</a>
+            </p>
+            <p>
+                <h3>Purpose:</h3>
+                This is a quantum circuit simulator designed to function as a learning tool for anyone interested in quantum computing.
+                It has a friendly GUI for constructing and evaluating quantum circuits.
+                Rather than constructing one simple circuit, it's designed to support modular circuit design.
+                Any circuit you make can be compiled into a gate for use in other circuits.
+                <br><br>
+                The default gates in use were chosen because they appear frequently in literature.
+                There does seem to be a mix of conventions regarding rotation gates. To avoid confusion,
+                this is the matrix used to construct all of the Rx gates used by this application:
+                <p style="text-align: center"><img src="images/r.png"></p>
+            </p>
+            <p>
+                <h3>The basics:</h3>
+                <ul>
+                    <li>Click on the qubits to the left of the circuit wires to toggle the input state.</li>
+                    <li>Click on a quantum gate (above the circuit wires) to select that gate type.
+                    Then click on a circuit wire to place the selected gate there.</li>
+                    <li>For gates over multiple qubits, such as the swap or QFT gates, click and drag across desired qubits.</li>
+                    <li>Right clicking will delete a gate.</li>
+                </ul>
+            </p>
+            <p>
+                <h3>Controls:</h3>
+                <ul>
+                    <li>Any gate can be made into a controlled version of itself by selecting the control gate (the black dot)
+                    and dragging from the control qubit to the target gate.</li>
+                    <li>Dragging a control onto an X gate will result in a CNot gate.</li>
+                    <li>Multiple controls can be added to a single gate.</li>
+                    <li>Dragging two controls to an X will result in a Toffoli gate.</li>
+                    <li>Right clicking on a control will remove it from the gate without removing the gate itself.</li>
+                </ul>
+            </p>
+            <p>
+                <h3>Evaluate:</h3>
+                <ul>
+                    <li>You can evaluate your circuit by either clicking the <b>Evaluate</b> option in the <b>Circuit</b> menu or by pressing <b>Enter</b>.</li>
+                    <li>Evaluating the circuit will apply the circuit to the current input state (on the left of the circuit wires)
+                    and display a table of resulting probabilities (on the right of the circuit wires).</li>
+                    <li>Each line in the probabilities table is of the form "a+bi|x> p%" where "a+bi" is a complex number (the amplitude),
+                    "x" is a possible binary state for the entire system, and "p" is a percent probability that a measurement would result in that state.</li>
+                    <li>By default, states with 0% probability are hidden. Click "(show all)" above the table to display zero and nonzero probabilities.</li>
+                </ul>
+            </p>
+            <p>
+                <h3>Compile:</h3>
+                <ul>
+                    <li>You can compile your circuit by either clicking the <b>Compile</b> option in the <b>Circuit</b> menu or by pressing <b>Ctrl+S</b>.</li>
+                    <li>Compiling your circuit will create a gate containing the visible circuit to be used in larger circuits.</li>
+                    <li>Once compiled, you can double-click on the in the toolbar to open it's circuit.</li>
+                    <li>Saving a gate with the same name as an existing one will overwrite the existing gate.
+                    This does not update gates that use this circuit. They will need to be "recompiled" too.</li>
+                </ul>
+            </p>
+            <p>
+                <h3>Exporting:</h3>
+                <ul>
+                    <li>You can export all of the gates you've created into a JSON format by clicking on the <b>Export JSON</b>
+                    option in the <b>Workspace</b> menu.</li>
+                    <li>This exported JSON text can be reimported at a later time by clicking on the <b>Import JSON</b>
+                    option in the <b>Workspace</b> menu and then pasting the JSON text into the prompt.</li>
+                    <li>You can export the circuit diagram as an image by clicking the <b>Export Image</b> option in the <b>Circuit</b> menu.</li>
+                    <li>You can export the circuit as a CSV matrix of complex values by clicking the <b>Export Matrix</b> option in the <b>Circuit</b> menu.</li>
+                </ul>
+            </p>
+            <p>
+                <h3>Resizing:</h3>
+                <ul>
+                    <li>You can resize your circuit by changing the <b>Qubits</b> setting in the <b>Circuit</b> menu.</li>
+                    <li>If the new size is smaller than the existing circuit, gates that don't fit will be removed.</li>
+                </ul>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
