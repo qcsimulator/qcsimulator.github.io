@@ -7,12 +7,10 @@ class Application {
         const editor = this.editor = new Editor(app, canvas);
         const toolbar = document.querySelector('#toolbar');
         toolbar.onclick = evt => {
-            if (typeof evt.path === 'undefined') {
-                evt.path = [evt.target];
-            }
-            const path = evt.path.filter(el => el && el.className && el.className.indexOf('gate') > -1);
-            if (path.length === 1) {
-                const target = path[0];
+            let target = findParent(evt.target, el => {
+                return el.className && el.className.indexOf('gate') > -1;
+            });
+            if (target) {
                 const current = document.querySelector('#toolbar div.gate.active');
                 if (current) {
                     current.className = 'gate';
@@ -25,12 +23,10 @@ class Application {
         userTools.ondblclick = evt => {
             // Open gate from toolbar
             evt.preventDefault();
-            if (typeof evt.path === 'undefined') {
-                evt.path = [evt.target];
-            }
-            const path = evt.path.filter(el => el && el.className && el.className.indexOf('gate') > -1);
-            if (path.length === 1) {
-                const target = path[0];
+            let target = findParent(evt.target, el => {
+                return el.className && el.className.indexOf('gate') > -1;
+            });
+            if (target) {
                 let ok = true;
                 if (app.circuit.gates.length > 0) {
                     // Only confirm if circuit isn't empty
@@ -143,7 +139,7 @@ class Application {
         }
         this.editor.resize(this.circuit.nqubits, this.editor.length);
         this.editor.input = json.input;
-        $('#nqubits > span').text('Qubits: ' + this.circuit.nqubits);
+        document.querySelector('#nqubits > span').innerHTML = 'Qubits: ' + this.circuit.nqubits;
         this.compileAll();
         this.editor.render();
     }
@@ -180,3 +176,16 @@ class Application {
     }
 
 }
+
+
+/*
+Search ancestors in DOM.
+*/
+const findParent = (el, test) => {
+    while (el.parentNode && !test(el)) {
+        el = el.parentNode;
+    }
+    if (el !== document) {
+        return el;
+    }
+};

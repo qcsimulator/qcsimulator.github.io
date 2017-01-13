@@ -23,20 +23,25 @@ class Editor {
 
     leftClick(time, qubit) {
         const editor = this;
-        const node = $(this.draw.canvas);
+        const node = this.draw.canvas;
         const circuit = this.app.circuit;
-        node.mousemove(function(evt2) {
+        // Clear mouse events
+        node.onmouseup = null;
+        node.onmouseout = null;
+        node.onmousedown = null;
+        node.onmousemove = null;
+        node.onmousemove = evt2 => {
             // Handles highlighting while dragging
             if (typeof evt2.offsetY == 'undefined') {
-                evt2.offsetY = evt2.layerY - node[0].offsetTop;
+                evt2.offsetY = evt2.layerY - node.offsetTop;
             }
             const qubits = editor.getSelection(qubit, Math.floor(evt2.offsetY / 40));
             editor.render();
             editor.draw.selection(time * 40, qubits, 255, 153, 0, 128);
-        });
-        node.mouseup(function(evt2) {
+        };
+        node.onmouseup = evt2 => {
             if (typeof evt2.offsetY == 'undefined') {
-                evt2.offsetY = evt2.pageY - node[0].offsetTop;
+                evt2.offsetY = evt2.pageY - node.offsetTop;
             }
             // Get array of selected qubits
             const qubits = editor.getSelection(qubit, Math.floor(evt2.offsetY / 40));
@@ -72,15 +77,19 @@ class Editor {
                     editor.createGate(type, time, qubits);
                 }
             }
-            node.unbind('mouseup');
-            node.unbind('mousemove');
-        });
+            // Clear mouse events
+            node.onmouseup = null;
+            node.onmouseout = null;
+            node.onmousedown = null;
+            node.onmousemove = null;
+            this.bindEvents();
+            editor.render();
+        };
     };
 
     rightClick(time, qubit) {
         const circuit = this.app.circuit;
         const editor = this;
-        const node = $(this.draw.canvas);
         const old = circuit.gates.length;
         let collision = false;
         if (time == 0) {
@@ -108,32 +117,32 @@ class Editor {
 
     bindEvents() {
         const editor = this;
-        const node = $(this.draw.canvas);
-        node.mouseout(function(evt) {
+        const node = this.draw.canvas;
+        node.onmouseout = evt => {
             // This stops the mouseover highlight from lingering after mouseout
             editor.render();
-        });
-        node[0].onmousemove = (function(evt) {
+        };
+        node.onmousemove = evt => {
             // Highlight tile under mouse
             if (typeof evt.offsetX == 'undefined') {
-                evt.offsetX = evt.pageX - node[0].offsetLeft;
+                evt.offsetX = evt.pageX - node.offsetLeft;
             }
             if (typeof evt.offsetY == 'undefined') {
-                evt.offsetY = evt.pageY - node[0].offsetTop;
+                evt.offsetY = evt.pageY - node.offsetTop;
             }
             editor.render();
             const x = Math.floor(evt.offsetX / 40);
             const y = Math.floor(evt.offsetY / 40);
             editor.draw.selection(x * 40, [y], 119, 153, 255, 64);
-        });
+        };
 
-        node.mousedown(function(evt) {
+        node.onmousedown = evt => {
             // Dispatch left/right click events
             if (typeof evt.offsetX == 'undefined') {
-                evt.offsetX = evt.pageX - node[0].offsetLeft;
+                evt.offsetX = evt.pageX - node.offsetLeft;
             }
             if (typeof evt.offsetY == 'undefined') {
-                evt.offsetY = evt.pageY - node[0].offsetTop;
+                evt.offsetY = evt.pageY - node.offsetTop;
             }
             const x = Math.floor(evt.offsetX / 40);
             const y = Math.floor(evt.offsetY / 40);
@@ -142,7 +151,7 @@ class Editor {
             } else if (evt.which == 2 || evt.which == 3) {
                 editor.rightClick(x, y);
             }
-        });
+        };
     }
 
     createGate(type, time, qubits) {
