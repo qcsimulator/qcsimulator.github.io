@@ -5,25 +5,44 @@ class Application {
         this.workspace = new Workspace(app);
         const circuit = this.circuit = new Circuit(app, nqubits);
         const editor = this.editor = new Editor(app, canvas);
-        $('#toolbar').on('click', 'div.gate', function() {
-            // Select gate from toolbar
-            $('#toolbar div.gate.active').removeClass('active');
-            $(this).addClass('active');
-            editor.activeGate = app.workspace.gates[$(this).data('type')];
-        });
-        $('#toolbar .user').on('dblclick', 'div.gate', function(evt) {
-            evt.preventDefault();
+        const toolbar = document.querySelector('#toolbar');
+        toolbar.onclick = evt => {
+            if (typeof evt.path === 'undefined') {
+                evt.path = [evt.target];
+            }
+            const path = evt.path.filter(el => el && el.className && el.className.indexOf('gate') > -1);
+            if (path.length === 1) {
+                const target = path[0];
+                const current = document.querySelector('#toolbar div.gate.active');
+                if (current) {
+                    current.className = 'gate';
+                }
+                target.className = 'active gate';
+                editor.activeGate = app.workspace.gates[target.dataset.type];
+            }
+        };
+        const userTools = document.querySelector('#toolbar .user');
+        userTools.ondblclick = evt => {
             // Open gate from toolbar
-            let ok = true;
-            if (app.circuit.gates.length > 0) {
-                ok = confirm('Load gate: ' + $(this).data('type') + '?');
+            evt.preventDefault();
+            if (typeof evt.path === 'undefined') {
+                evt.path = [evt.target];
             }
-            if (ok) {
-                app.editCircuit(app.workspace.gates[$(this).data('type')]);
+            const path = evt.path.filter(el => el && el.className && el.className.indexOf('gate') > -1);
+            if (path.length === 1) {
+                const target = path[0];
+                let ok = true;
+                if (app.circuit.gates.length > 0) {
+                    // Only confirm if circuit isn't empty
+                    ok = confirm('Load gate: ' + target.dataset.type + '?');
+                }
+                if (ok) {
+                    app.editCircuit(app.workspace.gates[target.dataset.type]);
+                }
             }
-            return false;
-        });
-        $('#toolbar div.gate').first().click();
+        };
+
+        document.querySelectorAll('#toolbar div.gate')[0].click();
     }
 
     /*
@@ -33,7 +52,7 @@ class Application {
     editCircuit(gate) {
         this.circuit = gate.circuit;
         this.editor.resize(gate.circuit.nqubits, this.editor.length);
-        $('#nqubits > span').text('Qubits: ' + this.circuit.nqubits);
+        document.querySelector('#nqubits > span').innerHTML = 'Qubits: ' + this.circuit.nqubits;
         if (gate.input) {
             this.editor.input = gate.input;
         }
@@ -50,9 +69,11 @@ class Application {
     addToolbarButton(type, name, title) {
         const canvas = document.createElement('canvas');
         const draw = new Draw(canvas, 1, 1);
-        const tool = $('<div data-type="' + name + '" class="gate"></div>');
+        const tool = document.createElement('div');
+        tool.dataset.type = name;
+        tool.className = "gate";
         if (title) {
-            tool.attr('title', title);
+            tool.title = title;
         }
         draw.clear();
         if (name == 'swap') {
@@ -64,9 +85,11 @@ class Application {
         } else {
             draw.gate(20, 20, 1, name.toUpperCase());
         }
-        tool.append('<img src="' + canvas.toDataURL() + '">');
-        tool.append('<div></div>');
-        $('#toolbar .' + type).append(tool);
+        const img = document.createElement('img');
+        img.src = canvas.toDataURL();
+        tool.appendChild(img);
+        tool.appendChild(document.createElement('div'));
+        document.querySelector('#toolbar .' + type).appendChild(tool);
     }
 
     /*
@@ -84,8 +107,8 @@ class Application {
     gates in the circuit.
     */
     loadWorkspace(json) {
-        $('#toolbar .std').empty();
-        $('#toolbar .user').empty();
+        document.querySelector('#toolbar .std').innerHTML = '';
+        document.querySelector('#toolbar .user').innerHTML = '';
         this.workspace = new Workspace(this);
         if (json.gates) {
             for (let i = 0 ; i < json.gates.length; i++) {
@@ -132,8 +155,8 @@ class Application {
     compileAll() {
         const todo = [];
         const workspace = this.workspace;
-        $('#toolbar .user div.gate').each(function() {
-            const name = $(this).data('type');
+        document.querySelectorAll('#toolbar .user div.gate').forEach(el => {
+            const name = el.dataset.type;
             const type = workspace.gates[name];
             if (!type.matrix) {
                 todo.push(type);
