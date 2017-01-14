@@ -1,4 +1,4 @@
-class Gate {
+module.exports = class Gate {
 
     constructor(type, time, targets, controls) {
         this.type = type;

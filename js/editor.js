@@ -1,4 +1,7 @@
-class Editor {
+const Draw = require('./draw');
+const Gate = require('./gate');
+
+module.exports = class Editor {
 
     constructor(app, canvas) {
         const length = 20;

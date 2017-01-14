@@ -3,22 +3,8 @@ TODO: More of the DOM specific stuff needs to be moved to the editor. Such as
 the toolbar construction.
 */
 
-
-/*
-Applies circuit to matrix of vector U and passes result to callback
-*/
-const applyCircuit = (circuit, x, callback) => {
-    const wrapper = document.querySelector('#progress');
-    wrapper.style.display = 'inline-block';
-    const progress = document.querySelector('#progress > div');
-    progress.width = 0;
-    circuit.evaluate(x, percent => {
-        progress.style.width = wrapper.clientWidth * percent;
-    }, x => {
-        wrapper.style.display = 'none';
-        callback(x);
-    });
-}
+const Application = require('./application');
+const examples = require('./examples');
 
 const displayAmplitudes = (nqubits, amplitudes) => {
     const table = document.querySelector('#amplitudes');
@@ -86,7 +72,7 @@ window.onload = () => {
         const amplitudes = new numeric.T(numeric.rep([size], 0), numeric.rep([size], 0));
         const state = editor.input.join('');
         amplitudes.x[parseInt(state, 2)] = 1;
-        applyCircuit(app.circuit, amplitudes, amplitudes => {
+        app.applyCircuit(app.circuit, amplitudes, amplitudes => {
             displayAmplitudes(app.circuit.nqubits, amplitudes.div(amplitudes.norm2()))
         });
     };
@@ -107,7 +93,7 @@ window.onload = () => {
         app.circuit.gates.sort((a, b) => a.time - b.time);
         const size = Math.pow(2, app.circuit.nqubits);
         const U = new numeric.T(numeric.identity(size), numeric.rep([size, size], 0));
-        applyCircuit(app.circuit, U, U => {
+        app.applyCircuit(app.circuit, U, U => {
             const name = prompt('Name of gate:', 'F');
             if (name) {
                 if (app.workspace.gates[name]) {
@@ -142,7 +128,7 @@ window.onload = () => {
         app.circuit.gates.sort((a, b) => a.time - b.time);
         const size = Math.pow(2, app.circuit.nqubits);
         const U = new numeric.T(numeric.identity(size), numeric.rep([size, size], 0));
-        applyCircuit(app.circuit, U, U => {
+        app.applyCircuit(app.circuit, U, U => {
             const child = window.open('', 'matrix.csv', ',resizable=yes,scrollbars=yes,menubar=yes,toolbar=yes,titlebar=yes,hotkeys=yes,status=1,dependent=no');
             for (let i = 0; i < U.x.length; i++) {
                 const row = [];
@@ -236,14 +222,14 @@ window.onload = () => {
     }
 
     const EXAMPLES = [
-        ["Toffoli", TOFFOLI],
-        ["Bell State", BELL_STATE],
-        ["2 Qubit QFT", QFT2],
-        ["4 Qubit QFT", QFT4],
-        ["Grover's Algorithm", GROVERS_ALGORITHM],
-        ["Quantum Teleportation", TELEPORTATION],
+        ["Toffoli", examples.TOFFOLI],
+        ["Bell State", examples.BELL_STATE],
+        ["2 Qubit QFT", examples.QFT2],
+        ["4 Qubit QFT", examples.QFT4],
+        ["Grover's Algorithm", examples.GROVERS_ALGORITHM],
+        ["Quantum Teleportation", examples.TELEPORTATION],
     ];
-    const examples = document.querySelector('#examples');
+    const examplesEl = document.querySelector('#examples');
     EXAMPLES.forEach((example, i) => {
         const name = example[0];
         const json = example[1];
@@ -259,7 +245,7 @@ window.onload = () => {
         }
         const li = document.createElement('li');
         li.appendChild(a);
-        examples.appendChild(li);
+        examplesEl.appendChild(li);
     });
 
     document.querySelector('#about').onclick = evt => {

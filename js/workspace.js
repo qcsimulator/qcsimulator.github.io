@@ -1,4 +1,6 @@
-class Workspace {
+const quantum = require('./quantum');
+
+module.exports = class Workspace {
 
     constructor(app) {
         this.app = app;

@@ -1,4 +1,10 @@
-class Application {
+const Circuit = require('./circuit');
+const Draw = require('./draw');
+const Editor = require('./editor');
+const Gate = require('./gate');
+const Workspace = require('./workspace');
+
+module.exports = class Application {
 
     constructor(canvas, nqubits) {
         const app = this;
@@ -149,6 +155,7 @@ class Application {
     XXX: This should probably be a method of Workspace
     */
     compileAll() {
+        const app = this;
         const todo = [];
         const workspace = this.workspace;
         document.querySelectorAll('#toolbar .user div.gate').forEach(el => {
@@ -165,7 +172,7 @@ class Application {
                     numeric.identity(n),
                     numeric.rep([n, n], 0)
                 );
-                applyCircuit(todo[i].circuit, I, U => {
+                app.applyCircuit(todo[i].circuit, I, U => {
                     todo[i].matrix = U;
                     setTimeout(function() {
                         loop(i + 1);
@@ -173,6 +180,22 @@ class Application {
                 });
             }
         })(0);
+    }
+
+    /*
+    Applies circuit to matrix and passes result to callback
+    */
+    applyCircuit(circuit, x, callback) {
+        const wrapper = document.querySelector('#progress');
+        wrapper.style.display = 'inline-block';
+        const progress = document.querySelector('#progress > div');
+        progress.width = 0;
+        circuit.evaluate(x, percent => {
+            progress.style.width = wrapper.clientWidth * percent;
+        }, x => {
+            wrapper.style.display = 'none';
+            callback(x);
+        });
     }
 
 }

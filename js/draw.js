@@ -1,7 +1,7 @@
 /*
 Rendering primatives for circuit grid
 */
-class Draw {
+module.exports = class Draw {
 
     constructor(canvas, nqubits, length) {
         this.canvas = canvas;

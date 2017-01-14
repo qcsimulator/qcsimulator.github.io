@@ -1,0 +1,9 @@
+{
+    "name": "quantum-circuit-simulator",
+    "devDependencies": {
+        "browserify": "latest"
+    },
+    "scripts": {
+        "build": "browserify js/main.js -o js/bundle.js"
+    }
+}

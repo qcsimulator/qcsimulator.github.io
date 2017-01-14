@@ -1,4 +1,7 @@
-class Circuit {
+const Gate = require('./gate');
+const quantum = require('./quantum');
+
+module.exports = class Circuit {
 
     constructor(app, nqubits) {
         this.app = app;
