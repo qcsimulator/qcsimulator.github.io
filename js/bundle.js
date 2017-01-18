@@ -151,6 +151,30 @@ module.exports = class Application {
         this.editor.render();
     }
 
+    exportWorkspace() {
+        const workspace = this.workspace;
+        this.circuit.gates.sort((a, b) => a.time - b.time);
+        const gates = [];
+        for (let key in workspace.gates) {
+            const gate = workspace.gates[key];
+            if (gate.std) {
+                continue;
+            }
+            gates.push({
+                name: key,
+                qubits: gate.circuit.nqubits,
+                circuit: gate.circuit.toJSON(),
+                title: ''
+            });
+        }
+        return {
+            gates: gates,
+            circuit: this.circuit.toJSON(),
+            qubits: this.circuit.nqubits,
+            input: this.editor.input
+        };
+    }
+
     /*
     Asynchronously compile every user defined gate in the workspace.
     XXX: This should probably be a method of Workspace
@@ -804,10 +828,7 @@ module.exports = class Gate {
 }
 
 },{}],7:[function(require,module,exports){
-/*
-TODO: More of the DOM specific stuff needs to be moved to the editor. Such as
-the toolbar construction.
-*/
+const FILE_VERSION = 1;
 
 const Application = require('./application');
 const examples = require('./examples');
@@ -948,37 +969,31 @@ window.onload = () => {
 
     document.querySelector('#importJSON').onclick = evt => {
         evt.preventDefault();
-        const json = prompt('Paste JSON:');
-        app.loadWorkspace(JSON.parse(json));
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.onchange = evt => {
+            const reader = new FileReader();
+            reader.onloadend = evt => {
+                if (evt.target.readyState !== FileReader.DONE) {
+                    return;
+                }
+                app.loadWorkspace(JSON.parse(evt.target.result));
+            };
+            reader.readAsText(evt.target.files[0]);
+        };
+        input.click();
     };
 
     document.querySelector('#exportJSON').onclick = evt => {
         evt.preventDefault();
-        app.circuit.gates.sort((a, b) => a.time - b.time);
-        const gates = [];
-        document.querySelectorAll('#toolbar .user div.gate').forEach(gate => {
-            const name = gate.dataset.type;
-            const type = app.workspace.gates[name];
-            gates.push({
-                name: name,
-                qubits: type.circuit.nqubits,
-                circuit: type.circuit.toJSON(),
-                title: ''
-            });
-        });
-        const json = JSON.stringify({
-            gates: gates,
-            circuit: app.circuit.toJSON(),
-            qubits: app.circuit.nqubits,
-            input: editor.input
-        });
+        const out = app.exportWorkspace();
+        out.version = FILE_VERSION;
+        const blob = new Blob([JSON.stringify(out)]);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.download = 'circuit.json';
-        a.innerHTML = 'circuit.json';
-        a.href = 'data:text/javascript,' + encodeURI(json);
-        document.body.appendChild(a);
+        a.href = url;
+        a.download = 'workspace.json';
         a.click();
-        document.body.removeChild(a);
     };
 
     const resize = size => {
@@ -1224,7 +1239,7 @@ module.exports = class Workspace {
         this.addGate({name: 's', qubits: 1, matrix: quantum.s, title: 'Phase Gate'}, true);
         this.addGate({name: 't', qubits: 1, matrix: quantum.r4, title: 'Same as R4'}, true);
         this.addGate({name: 'cnot', qubits: 2, matrix: quantum.cnot, title: 'Controlled Not'}, true);
-        this.addGate({name: 'control'}, true);
+        this.addGate({name: 'control', title: 'Control'}, true);
         this.addGate({name: 'swap', qubits: 2, matrix: quantum.swap, title: 'Swap'}, true);
         this.addGate({name: 'r2', qubits: 1, matrix: quantum.r2, title: 'Pi/2 Phase Rotatation'}, true);
         this.addGate({name: 'r4', qubits: 1, matrix: quantum.r4, title: 'Pi/4 Phase Rotatation'}, true);
@@ -1241,7 +1256,8 @@ module.exports = class Workspace {
             circuit: ops.circuit,
             fn: ops.fn,
             title: ops.title,
-            input: ops.input
+            input: ops.input,
+            std: std || false
         };
         this.app.addToolbarButton(std ? 'std' : 'user', ops.name, ops.title);
     }

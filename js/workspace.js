@@ -16,7 +16,7 @@ module.exports = class Workspace {
         this.addGate({name: 's', qubits: 1, matrix: quantum.s, title: 'Phase Gate'}, true);
         this.addGate({name: 't', qubits: 1, matrix: quantum.r4, title: 'Same as R4'}, true);
         this.addGate({name: 'cnot', qubits: 2, matrix: quantum.cnot, title: 'Controlled Not'}, true);
-        this.addGate({name: 'control'}, true);
+        this.addGate({name: 'control', title: 'Control'}, true);
         this.addGate({name: 'swap', qubits: 2, matrix: quantum.swap, title: 'Swap'}, true);
         this.addGate({name: 'r2', qubits: 1, matrix: quantum.r2, title: 'Pi/2 Phase Rotatation'}, true);
         this.addGate({name: 'r4', qubits: 1, matrix: quantum.r4, title: 'Pi/4 Phase Rotatation'}, true);
@@ -33,7 +33,8 @@ module.exports = class Workspace {
             circuit: ops.circuit,
             fn: ops.fn,
             title: ops.title,
-            input: ops.input
+            input: ops.input,
+            std: std || false
         };
         this.app.addToolbarButton(std ? 'std' : 'user', ops.name, ops.title);
     }

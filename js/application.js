@@ -150,6 +150,30 @@ module.exports = class Application {
         this.editor.render();
     }
 
+    exportWorkspace() {
+        const workspace = this.workspace;
+        this.circuit.gates.sort((a, b) => a.time - b.time);
+        const gates = [];
+        for (let key in workspace.gates) {
+            const gate = workspace.gates[key];
+            if (gate.std) {
+                continue;
+            }
+            gates.push({
+                name: key,
+                qubits: gate.circuit.nqubits,
+                circuit: gate.circuit.toJSON(),
+                title: ''
+            });
+        }
+        return {
+            gates: gates,
+            circuit: this.circuit.toJSON(),
+            qubits: this.circuit.nqubits,
+            input: this.editor.input
+        };
+    }
+
     /*
     Asynchronously compile every user defined gate in the workspace.
     XXX: This should probably be a method of Workspace

@@ -1,7 +1,4 @@
-/*
-TODO: More of the DOM specific stuff needs to be moved to the editor. Such as
-the toolbar construction.
-*/
+const FILE_VERSION = 1;
 
 const Application = require('./application');
 const examples = require('./examples');
@@ -142,37 +139,31 @@ window.onload = () => {
 
     document.querySelector('#importJSON').onclick = evt => {
         evt.preventDefault();
-        const json = prompt('Paste JSON:');
-        app.loadWorkspace(JSON.parse(json));
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.onchange = evt => {
+            const reader = new FileReader();
+            reader.onloadend = evt => {
+                if (evt.target.readyState !== FileReader.DONE) {
+                    return;
+                }
+                app.loadWorkspace(JSON.parse(evt.target.result));
+            };
+            reader.readAsText(evt.target.files[0]);
+        };
+        input.click();
     };
 
     document.querySelector('#exportJSON').onclick = evt => {
         evt.preventDefault();
-        app.circuit.gates.sort((a, b) => a.time - b.time);
-        const gates = [];
-        document.querySelectorAll('#toolbar .user div.gate').forEach(gate => {
-            const name = gate.dataset.type;
-            const type = app.workspace.gates[name];
-            gates.push({
-                name: name,
-                qubits: type.circuit.nqubits,
-                circuit: type.circuit.toJSON(),
-                title: ''
-            });
-        });
-        const json = JSON.stringify({
-            gates: gates,
-            circuit: app.circuit.toJSON(),
-            qubits: app.circuit.nqubits,
-            input: editor.input
-        });
+        const out = app.exportWorkspace();
+        out.version = FILE_VERSION;
+        const blob = new Blob([JSON.stringify(out)]);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.download = 'circuit.json';
-        a.innerHTML = 'circuit.json';
-        a.href = 'data:text/javascript,' + encodeURI(json);
-        document.body.appendChild(a);
+        a.href = url;
+        a.download = 'workspace.json';
         a.click();
-        document.body.removeChild(a);
     };
 
     const resize = size => {
