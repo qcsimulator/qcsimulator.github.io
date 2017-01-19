@@ -74,9 +74,7 @@ module.exports = class Application {
         const tool = document.createElement('div');
         tool.dataset.type = name;
         tool.className = "gate";
-        if (title) {
-            tool.title = title;
-        }
+        tool.title = title || '';
         draw.clear();
         if (name == 'swap') {
             draw.swap(20, 20);
@@ -115,34 +113,17 @@ module.exports = class Application {
         if (json.gates) {
             for (let i = 0 ; i < json.gates.length; i++) {
                 const gate = json.gates[i];
-                const circuit = new Circuit(this, gate.qubits);
-                for (let j = 0; j < gate.circuit.length; j++) {
-                    circuit.addGate(new Gate(
-                        this.workspace.gates[gate.circuit[j].type],
-                        gate.circuit[j].time + 1,
-                        gate.circuit[j].targets,
-                        gate.circuit[j].controls
-                    ));
-                }
                 this.workspace.addGate({
                     name: gate.name,
                     qubits: gate.qubits,
                     matrix: gate.matrix,
                     fn: gate.fn,
                     title: gate.title,
-                    circuit: circuit
+                    circuit: Circuit.load(this, gate.qubits, gate.circuit)
                 });
             }
         }
-        this.circuit = new Circuit(this, json.qubits);
-        for (let j = 0; j < json.circuit.length; j++) {
-            this.circuit.addGate(new Gate(
-                this.workspace.gates[json.circuit[j].type],
-                json.circuit[j].time + 1,
-                json.circuit[j].targets,
-                json.circuit[j].controls
-            ));
-        }
+        this.circuit = Circuit.load(this, json.qubits, json.circuit);
         this.editor.resize(this.circuit.nqubits, this.editor.length);
         this.editor.input = json.input;
         document.querySelector('#nqubits > span').innerHTML = 'Qubits: ' + this.circuit.nqubits;
@@ -150,6 +131,9 @@ module.exports = class Application {
         this.editor.render();
     }
 
+    /*
+    Return object representation of workspace capable of being exported to JSON.
+    */
     exportWorkspace() {
         const workspace = this.workspace;
         this.circuit.gates.sort((a, b) => a.time - b.time);
@@ -176,20 +160,18 @@ module.exports = class Application {
 
     /*
     Asynchronously compile every user defined gate in the workspace.
-    XXX: This should probably be a method of Workspace
     */
     compileAll() {
         const app = this;
         const todo = [];
         const workspace = this.workspace;
         document.querySelectorAll('#toolbar .user div.gate').forEach(el => {
-            const name = el.dataset.type;
-            const type = workspace.gates[name];
+            const type = workspace.gates[el.dataset.type];
             if (!type.matrix) {
                 todo.push(type);
             }
         });
-        (function loop(i) {
+        const loop = i => {
             if (i < todo.length) {
                 const n = Math.pow(2, todo[i].circuit.nqubits);
                 const I = new numeric.T(
@@ -198,12 +180,11 @@ module.exports = class Application {
                 );
                 app.applyCircuit(todo[i].circuit, I, U => {
                     todo[i].matrix = U;
-                    setTimeout(function() {
-                        loop(i + 1);
-                    }, 5);
+                    setTimeout(() => loop(i + 1), 1);
                 });
             }
-        })(0);
+        };
+        loop(0);
     }
 
     /*
@@ -226,7 +207,7 @@ module.exports = class Application {
 
 
 /*
-Search ancestors in DOM.
+Search for ancestor in DOM.
 */
 const findParent = (el, test) => {
     while (el.parentNode && !test(el)) {

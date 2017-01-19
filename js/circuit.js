@@ -1,7 +1,7 @@
 const Gate = require('./gate');
 const quantum = require('./quantum');
 
-module.exports = class Circuit {
+class Circuit {
 
     constructor(app, nqubits) {
         this.app = app;
@@ -94,3 +94,18 @@ module.exports = class Circuit {
 
 }
 
+module.exports = Circuit;
+
+Circuit.load = (app, nqubits, gates) => {
+    const circuit = new Circuit(app, nqubits);
+    for (let i = 0; i < gates.length; i++) {
+        const gate = gates[i];
+        circuit.addGate(new Gate(
+            app.workspace.gates[gate.type],
+            gate.time + 1,
+            gate.targets,
+            gate.controls
+        ));
+    }
+    return circuit;
+};
