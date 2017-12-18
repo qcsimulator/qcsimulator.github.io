@@ -2,4 +2,4 @@
 
 A browser based quantum circuit editor and simulator.
 
-Application here: [https://wybiral.github.io/quantum/](https://wybiral.github.io/quantum/)
+Application here: [https://qcsimulator.github.io/qcsimulator/](https://qcsimulator.github.io/qcsimulator/)
